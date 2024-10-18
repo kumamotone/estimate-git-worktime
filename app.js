@@ -8,15 +8,18 @@ app.get('/', async (req, res) => {
     try {
         const { totalHours, detailedLog } = await getWorkTimeData();
         
-        // 累積作業時間を計算
+        // 日ごとの累積作業時間を計算
+        const dailyData = {};
         let cumulativeHours = 0;
-        const cumulativeData = detailedLog.map(entry => {
+        detailedLog.forEach(entry => {
             cumulativeHours += parseFloat(entry.countedHours);
-            return {
-                date: `${entry.date} ${entry.time}`,
-                hours: cumulativeHours.toFixed(2)
-            };
+            if (dailyData[entry.date]) {
+                dailyData[entry.date].hours = cumulativeHours.toFixed(2);
+            } else {
+                dailyData[entry.date] = { date: entry.date, hours: cumulativeHours.toFixed(2) };
+            }
         });
+        const dailyCumulativeData = Object.values(dailyData);
 
         res.send(`
             <!DOCTYPE html>
@@ -73,7 +76,7 @@ app.get('/', async (req, res) => {
                     <div class="time-result">Estimated total working hours: ${totalHours} hours</div>
                 </div>
                 <div class="container">
-                    <h2>Cumulative Work Time</h2>
+                    <h2>Daily Cumulative Work Time</h2>
                     <div class="chart-container">
                         <canvas id="workTimeChart"></canvas>
                     </div>
@@ -88,7 +91,7 @@ app.get('/', async (req, res) => {
                                 <th>Commit Message</th>
                                 <th>Hours Since Last Commit</th>
                                 <th>Counted Hours</th>
-                                <th>Cumulative Hours</th>
+                                <th>Daily Cumulative Hours</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -99,7 +102,7 @@ app.get('/', async (req, res) => {
                                     <td>${entry.message}</td>
                                     <td>${entry.hoursSinceLast}</td>
                                     <td>${entry.countedHours.toFixed(2)}</td>
-                                    <td>${cumulativeData[index].hours}</td>
+                                    <td>${dailyData[entry.date].hours}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -110,10 +113,10 @@ app.get('/', async (req, res) => {
                     new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: ${JSON.stringify(cumulativeData.map(entry => entry.date))},
+                            labels: ${JSON.stringify(dailyCumulativeData.map(entry => entry.date))},
                             datasets: [{
-                                label: 'Cumulative Hours Worked',
-                                data: ${JSON.stringify(cumulativeData.map(entry => entry.hours))},
+                                label: 'Daily Cumulative Hours Worked',
+                                data: ${JSON.stringify(dailyCumulativeData.map(entry => entry.hours))},
                                 fill: false,
                                 borderColor: 'rgba(0, 123, 255, 1)',
                                 tension: 0.1
@@ -133,7 +136,7 @@ app.get('/', async (req, res) => {
                                 x: {
                                     title: {
                                         display: true,
-                                        text: 'Commit Date and Time'
+                                        text: 'Date'
                                     },
                                     ticks: {
                                         maxRotation: 45,
