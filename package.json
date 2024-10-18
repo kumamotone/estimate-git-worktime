@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "description": "A tool that analyzes the commit history of a Git repository to estimate the project's working hours.",
   "dependencies": {
     "express": "^4.21.1"
   }
